@@ -78,6 +78,13 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
 .bprev{background:transparent;border:1.5px solid #eee;border-radius:7px;padding:10px 20px;color:#888;font-size:14px;cursor:pointer;}
 .bnxt{background:#C8102E;border:none;border-radius:7px;padding:10px 28px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;}
 .bnxt:hover{background:#a00d24;}
+.bskip{background:transparent;border:1.5px solid #C8102E;border-radius:7px;padding:10px 16px;color:#C8102E;font-size:14px;font-weight:600;cursor:pointer;}
+.bskip:hover{background:#fff0f0;}
+.qdot{width:14px;height:14px;border-radius:50%;cursor:pointer;transition:transform .15s;}
+.qdot:hover{transform:scale(1.3);}
+.dot-cur{background:#C8102E;box-shadow:0 0 0 3px rgba(200,16,46,.25);}
+.dot-done{background:#16a34a;}
+.dot-skip{background:#ddd;}
 #camprev{position:fixed;bottom:16px;right:14px;width:90px;height:68px;border-radius:8px;overflow:hidden;border:2px solid #C8102E;display:none;z-index:50;}
 #camprev video{width:100%;height:100%;object-fit:cover;}
 #complete{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;flex-direction:column;background:#f5f5f5;}
@@ -104,7 +111,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
     <div class="badge">VE Cognitive &amp; Cognitive-Behavioral Assessment Framework</div>
     <p class="sub">Structured cognitive evaluation for candidate selection &mdash; The Value Engineering</p>
     <div class="grid">
-      <div class="meta"><div class="lbl">Duration</div><div class="val">25 Minutes</div></div>
+      <div class="meta"><div class="lbl">Duration</div><div class="val">20 Minutes</div></div>
       <div class="meta"><div class="lbl">Questions</div><div class="val">50 Items</div></div>
       <div class="meta"><div class="lbl">Constructs</div><div class="val">5 Areas</div></div>
       <div class="meta"><div class="lbl">Proctored</div><div class="val" style="color:#16a34a">&#10003; Live Monitored</div></div>
@@ -210,7 +217,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
       <div style="width:1px;height:22px;background:#eee"></div>
       <div class="topbar-mid"><strong id="barName">Candidate</strong>VE-CCAF Assessment</div>
     </div>
-    <div class="timerbox" id="timerBox">25:00</div>
+    <div class="timerbox" id="timerBox">20:00</div>
     <div style="font-size:13px;color:#C8102E" id="flagLbl">Flags: 0</div>
   </div>
   <div class="progstrip">
@@ -308,7 +315,7 @@ var QUESTION_BANK={
 var CONSTRUCTS=[
   {id:"gca",name:"General Cognitive Ability",icon:"&#129504;",weight:0.30,
    desc:"Measures logical reasoning, abstract thinking, numerical ability, and verbal comprehension.",
-   tip:"Tip: Think carefully before answering. These questions test your core reasoning ability.",count:15},
+   tip:"Tip: Think carefully before answering. These questions test your core reasoning ability.",count:10},
   {id:"ip",name:"Information Processing",icon:"&#9889;",weight:0.15,
    desc:"Measures processing speed, working memory, and attention to detail.",
    tip:"Tip: Work quickly and accurately. Speed matters here alongside correctness.",count:10},
@@ -357,7 +364,7 @@ var allQ=buildQuestions();
 var cName="",cCNIC="",cEmail="",cPos="",cDept="";
 var curIdx=0,ans=new Array(allQ.length).fill(null);
 var flags=0,camOn=false,camStream=null,cnicUrl="";
-var timerInt=null,timeLeft=1500,lastCon=null,siCb=null,done=false;
+var timerInt=null,timeLeft=1200,lastCon=null,siCb=null,done=false;
 
 function doStart(){
   cName=document.getElementById("iname").value.trim();
@@ -455,15 +462,40 @@ function startTest(){
       terminate("Tab switch detected (flag #"+flags+")");
     }
   });
+  // Audio context for beep alerts
+  var audioCtx=null;
+  function beep(freq,dur,vol){
+    try{
+      if(!audioCtx){audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
+      var osc=audioCtx.createOscillator();
+      var gain=audioCtx.createGain();
+      osc.connect(gain);gain.connect(audioCtx.destination);
+      osc.frequency.value=freq;
+      gain.gain.setValueAtTime(vol||0.3,audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime+dur);
+    }catch(e){}
+  }
+  function trafficAlert(){
+    // Red light pattern: 3 urgent beeps
+    beep(880,0.15,0.4);
+    setTimeout(function(){beep(880,0.15,0.4);},200);
+    setTimeout(function(){beep(880,0.3,0.5);},400);
+  }
   timerInt=setInterval(function(){
     if(done){return;}
     timeLeft--;
     var m=Math.floor(timeLeft/60),s=timeLeft%60;
     var b=document.getElementById("timerBox");
     b.textContent=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-    if(timeLeft<=300){b.className="timerbox warn";}
-    if(timeLeft<=60){b.className="timerbox danger";}
-    if(timeLeft<=0){clearInterval(timerInt);finish(false,"Time expired");}
+    if(timeLeft===300){b.className="timerbox warn";beep(660,0.5,0.3);}
+    if(timeLeft===120){b.className="timerbox warn";trafficAlert();}
+    if(timeLeft===60){b.className="timerbox danger";trafficAlert();}
+    if(timeLeft===30){trafficAlert();}
+    if(timeLeft===10){beep(880,0.2,0.5);}
+    if(timeLeft>0&&timeLeft<=10&&timeLeft%2===0){beep(1000,0.1,0.3);}
+    if(timeLeft<=0){clearInterval(timerInt);trafficAlert();finish(false,"Time expired");}
   },1000);
   showQ(0);
 }
@@ -525,8 +557,18 @@ function renderQ(idx){
   h+='<div class="navrow">';
   if(idx>0){h+='<button class="bprev" onclick="goBack('+idx+')">&#8592; Back</button>';}
   else{h+='<span></span>';}
-  if(isLast){h+='<button class="bnxt" onclick="confirmSub()">Submit &#10003;</button>';}
+  h+='<div style="display:flex;gap:8px">';
+  if(!isLast){h+='<button class="bskip" onclick="skipQ('+idx+')">Skip &#8594;&#8594;</button>';}
+  if(isLast){h+='<button class="bnxt" onclick="showReview()">Review &amp; Submit &#10003;</button>';}
   else{h+='<button class="bnxt" onclick="goNext('+idx+')">Next &#8594;</button>';}
+  h+='</div>';
+  h+='</div>';
+  // Question navigator dots
+  h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:16px;padding-top:14px;border-top:1px solid #eee">';
+  for(var qi=0;qi<allQ.length;qi++){
+    var dotClass=qi===idx?"dot-cur":ans[qi]!==null&&ans[qi]!==undefined?"dot-done":"dot-skip";
+    h+='<div class="qdot '+dotClass+'" onclick="jumpTo('+qi+')" title="Q'+(qi+1)+'"></div>';
+  }
   h+='</div>';
   document.getElementById("qCard").innerHTML=h;
   window.scrollTo(0,0);
@@ -542,6 +584,23 @@ function selOpt(idx,v,el){
   el.classList.add("sel");
 }
 function goNext(idx){curIdx=idx+1;showQ(curIdx);}
+function skipQ(idx){
+  // mark as skipped (null stays) and move forward
+  curIdx=idx+1;showQ(curIdx);
+}
+function jumpTo(idx){curIdx=idx;showQ(curIdx);}
+function showReview(){
+  var skipped=[];
+  ans.forEach(function(a,i){if(a===null||a===undefined)skipped.push(i+1);});
+  if(skipped.length===0){confirmSub();return;}
+  var msg="You have "+skipped.length+" unanswered question(s):\n\nQuestion(s): "+skipped.join(", ")+"\n\nWould you like to go back and answer them, or submit now?";
+  if(confirm(msg+"\n\nClick OK to submit, Cancel to go back.")){finish(false,"Candidate submitted");}
+  else{
+    // Jump to first skipped question
+    var firstSkipped=skipped[0]-1;
+    jumpTo(firstSkipped);
+  }
+}
 function goBack(idx){curIdx=idx-1;showQ(curIdx);}
 function confirmSub(){
   var ua=ans.filter(function(a){return a===null||a===undefined;}).length;
@@ -574,7 +633,7 @@ function finish(forced,reason){
     weighted+=conScores[con.id]*con.weight;
   });
   var overall=Math.round(weighted);
-  var used=Math.floor((1500-timeLeft)/60)+"m "+((1500-timeLeft)%60)+"s";
+  var used=Math.floor((1200-timeLeft)/60)+"m "+((1200-timeLeft)%60)+"s";
 
   // IQ Band
   var iqBand,iqLabel;
