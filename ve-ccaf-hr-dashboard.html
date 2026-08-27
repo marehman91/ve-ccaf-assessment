@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VE-CCAF HR Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh;}
@@ -377,164 +378,185 @@ function closeReport(){
 }
 
 function downloadPDF(){
-  if(!currentCandidate){return;}
+  if(!currentCandidate){alert("No candidate selected.");return;}
   var r=currentCandidate;
   var overall=parseInt(r["Overall Weighted %"])||0;
   var rec=r["Recommendation"]||"";
-
-  var jsPDF=window.jspdf.jsPDF;
-  var doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  
+  // Use window.jspdf
+  if(!window.jspdf||!window.jspdf.jsPDF){
+    alert("PDF library not loaded. Please ensure you are online.");return;
+  }
+  
+  var doc=new window.jspdf.jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
   var W=210,M=18,Y=M;
-
-  // Header background
+  
+  // Header
   doc.setFillColor(26,10,13);
-  doc.rect(0,0,W,40,F);
+  doc.rect(0,0,W,42,"F");
   doc.setFillColor(200,16,46);
-  doc.rect(0,40,W,2,F);
-
-  // Logo text
+  doc.rect(0,42,W,2,"F");
   doc.setTextColor(255,255,255);
-  doc.setFontSize(16);doc.setFont("helvetica","bold");
-  doc.text("THE VALUE ENGINEERING",M,18);
+  doc.setFontSize(18);doc.setFont("helvetica","bold");
+  doc.text("THE VALUE ENGINEERING",M,16);
   doc.setFontSize(11);doc.setFont("helvetica","normal");
-  doc.text("VE-CCAF Assessment Report | People & Culture",M,26);
-  doc.setTextColor(150,150,150);
+  doc.text("VE-CCAF Cognitive Assessment Report",M,25);
+  doc.setTextColor(136,136,136);
   doc.setFontSize(9);
-  doc.text("Assessment Date: "+(r["Timestamp"]||"-"),M,34);
+  doc.text("Confidential | People & Culture Division | "+new Date().toLocaleDateString(),M,34);
   Y=52;
-
-  // Candidate info boxes
-  doc.setFillColor(248,248,248);
-  doc.roundedRect(M,Y,82,22,3,3,"F");
-  doc.roundedRect(110,Y,82,22,3,3,"F");
-  doc.setTextColor(150,150,150);doc.setFontSize(8);doc.setFont("helvetica","normal");
-  doc.text("CANDIDATE NAME",M+4,Y+6);
-  doc.text("CNIC",110+4,Y+6);
-  doc.setTextColor(26,10,13);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text(r["Name"]||"-",M+4,Y+14);
-  doc.text(r["CNIC"]||"-",110+4,Y+14);
-  Y+=26;
-  doc.setFillColor(248,248,248);
-  doc.roundedRect(M,Y,82,22,3,3,"F");
-  doc.roundedRect(110,Y,82,22,3,3,"F");
-  doc.setTextColor(150,150,150);doc.setFontSize(8);doc.setFont("helvetica","normal");
-  doc.text("POSITION APPLIED",M+4,Y+6);
-  doc.text("DEPARTMENT",110+4,Y+6);
-  doc.setTextColor(26,10,13);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text(r["Position"]||"-",M+4,Y+14);
-  doc.text(r["Department"]||"-",110+4,Y+14);
-  Y+=30;
-
-  // Overall score box
+  
+  // Candidate info
+  var info=[["Full Name",r["Name"]||"-"],["CNIC",r["CNIC"]||"-"],["Position",r["Position"]||"-"],["Department",r["Department"]||"-"],["Assessment Date",r["Timestamp"]||"-"]];
+  info.forEach(function(row,i){
+    var col=i%2===0?M:110;
+    if(i%2===0&&i>0){Y+=14;}
+    if(i===0){Y=52;}
+    doc.setFillColor(248,248,248);
+    doc.roundedRect(col,Y,82,12,2,2,"F");
+    doc.setTextColor(150,150,150);doc.setFontSize(7);doc.setFont("helvetica","normal");
+    doc.text(row[0].toUpperCase(),col+3,Y+4.5);
+    doc.setTextColor(26,10,13);doc.setFontSize(10);doc.setFont("helvetica","bold");
+    doc.text(String(row[1]).substring(0,30),col+3,Y+10);
+  });
+  Y+=28;
+  
+  // Overall score
   doc.setFillColor(26,10,13);
-  doc.roundedRect(M,Y,174,28,4,4,"F");
+  doc.roundedRect(M,Y,174,26,4,4,"F");
   doc.setTextColor(255,255,255);
-  doc.setFontSize(22);doc.setFont("helvetica","bold");
-  doc.text(overall+"%",M+8,Y+18);
+  doc.setFontSize(26);doc.setFont("helvetica","bold");
+  doc.text(overall+"%",M+10,Y+18);
   doc.setTextColor(200,16,46);
-  doc.setFontSize(13);
-  doc.text(r["IQ Label"]||"-",M+40,Y+14);
-  doc.setTextColor(150,150,150);doc.setFontSize(9);doc.setFont("helvetica","normal");
-  doc.text("IQ Band: "+(r["IQ Band"]||"-"),M+40,Y+22);
-  Y+=36;
-
+  doc.setFontSize(14);doc.setFont("helvetica","bold");
+  doc.text(r["IQ Label"]||"-",M+45,Y+13);
+  doc.setTextColor(136,136,136);doc.setFontSize(9);doc.setFont("helvetica","normal");
+  doc.text("IQ Band: "+(r["IQ Band"]||"-")+"  |  Weighted Score across 5 Constructs",M+45,Y+21);
+  Y+=34;
+  
   // Construct scores
   doc.setTextColor(26,10,13);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text("CONSTRUCT SCORES (WEIGHTED)",M,Y);Y+=6;
+  doc.text("CONSTRUCT SCORES",M,Y);
+  doc.setFillColor(200,16,46);doc.rect(M,Y+2,40,1,"F");
+  Y+=8;
   var cons=[
-    {name:"General Cognitive Ability (30%)",key:"GCA % (w:30%)"},
-    {name:"Information Processing (15%)",key:"IP % (w:15%)"},
-    {name:"Analytical Thinking (20%)",key:"AT % (w:20%)"},
-    {name:"Learning & Adaptability (15%)",key:"LA % (w:15%)"},
-    {name:"Applied Business Judgment (20%)",key:"ABJ % (w:20%)"}
+    {name:"General Cognitive Ability",sub:"Logical, Abstract, Numerical, Verbal",key:"GCA % (w:30%)",w:"30%"},
+    {name:"Information Processing",sub:"Processing Speed, Working Memory",key:"IP % (w:15%)",w:"15%"},
+    {name:"Analytical Thinking",sub:"Problem Solving, Critical Thinking",key:"AT % (w:20%)",w:"20%"},
+    {name:"Learning & Adaptability",sub:"Learning Agility, Flexibility",key:"LA % (w:15%)",w:"15%"},
+    {name:"Applied Business Judgment",sub:"Situational Judgment, Strategy",key:"ABJ % (w:20%)",w:"20%"}
   ];
   cons.forEach(function(con){
     var pct=parseInt(r[con.key])||0;
-    doc.setFont("helvetica","normal");doc.setFontSize(9);
-    doc.setTextColor(80,80,80);
-    doc.text(con.name,M,Y+4);
+    var label=pct>=75?"Strong":pct>=55?"Average":"Needs Work";
+    var lc=pct>=75?[22,163,74]:pct>=55?[217,119,6]:[220,38,38];
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(26,10,13);
+    doc.text(con.name+" ("+con.w+")",M,Y+4);
+    doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(120,120,120);
+    doc.text(con.sub,M,Y+8.5);
     doc.setFillColor(238,238,238);
-    doc.roundedRect(M+80,Y,74,5,2,2,"F");
-    var fillW=Math.round(74*(pct/100));
-    doc.setFillColor(200,16,46);
-    if(fillW>0)doc.roundedRect(M+80,Y,fillW,5,2,2,"F");
-    doc.setTextColor(26,10,13);doc.setFont("helvetica","bold");doc.setFontSize(9);
-    doc.text(pct+"%",M+158,Y+4);
-    var lbl=pct>=75?"Strong":pct>=55?"Average":"Needs Work";
+    doc.roundedRect(M+85,Y+1,68,6,2,2,"F");
+    if(pct>0){
+      doc.setFillColor(200,16,46);
+      doc.roundedRect(M+85,Y+1,Math.round(68*(pct/100)),6,2,2,"F");
+    }
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(26,10,13);
+    doc.text(pct+"%",M+156,Y+6);
     doc.setFont("helvetica","normal");doc.setFontSize(8);
-    doc.setTextColor(pct>=75?22:pct>=55?133:153,pct>=75?163:pct>=55?77:27,pct>=75?74:pct>=55?14:27);
-    Y+=8;
+    doc.setTextColor(lc[0],lc[1],lc[2]);
+    doc.text(label,M+165,Y+6);
+    Y+=14;
   });
-  Y+=6;
-
+  Y+=4;
+  
   // Strengths
-  doc.setTextColor(22,163,74);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text("AREAS OF STRENGTH",M,Y);Y+=6;
+  doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(22,101,52);
+  doc.text("AREAS OF STRENGTH",M,Y);
+  doc.setFillColor(22,163,74);doc.rect(M,Y+2,35,1,"F");
+  Y+=8;
+  var hasStr=false;
   cons.forEach(function(con){
     var pct=parseInt(r[con.key])||0;
     if(pct>=70){
+      hasStr=true;
       doc.setFillColor(240,253,244);
-      doc.roundedRect(M,Y,174,8,2,2,"F");
-      doc.setTextColor(22,101,52);doc.setFont("helvetica","normal");doc.setFontSize(9);
-      doc.text("+ "+con.name.split(" (")[0]+" — "+pct+"% performance",M+3,Y+5.5);
-      Y+=10;
+      doc.roundedRect(M,Y,174,9,2,2,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(22,101,52);
+      doc.text("+ "+con.name+" — "+pct+"%",M+3,Y+6);
+      Y+=11;
     }
   });
+  if(!hasStr){
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text("No construct exceeded the strength threshold.",M,Y);Y+=8;
+  }
   Y+=4;
-
+  
   // Improvements
-  doc.setTextColor(154,58,18);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text("AREAS FOR IMPROVEMENT",M,Y);Y+=6;
+  doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(154,52,18);
+  doc.text("AREAS FOR IMPROVEMENT",M,Y);
+  doc.setFillColor(200,16,46);doc.rect(M,Y+2,42,1,"F");
+  Y+=8;
+  var hasImp=false;
   cons.forEach(function(con){
     var pct=parseInt(r[con.key])||0;
     if(pct<60){
+      hasImp=true;
       doc.setFillColor(255,247,237);
-      doc.roundedRect(M,Y,174,8,2,2,"F");
-      doc.setTextColor(154,58,18);doc.setFont("helvetica","normal");doc.setFontSize(9);
-      doc.text("! "+con.name.split(" (")[0]+" — "+pct+"% requires focused development",M+3,Y+5.5);
-      Y+=10;
+      doc.roundedRect(M,Y,174,9,2,2,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(154,52,18);
+      doc.text("! "+con.name+" — "+pct+"% (development recommended)",M+3,Y+6);
+      Y+=11;
     }
   });
+  if(!hasImp){
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text("No significant improvement areas identified.",M,Y);Y+=8;
+  }
   Y+=4;
-
+  
   // Justification
-  doc.setTextColor(26,10,13);doc.setFontSize(11);doc.setFont("helvetica","bold");
-  doc.text("JUSTIFICATION",M,Y);Y+=6;
-  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80,80,80);
-  var just=doc.splitTextToSize(r["Justification"]||"-",174);
-  doc.text(just,M,Y);
-  Y+=just.length*5+6;
-
+  doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(26,10,13);
+  doc.text("HR JUSTIFICATION",M,Y);
+  doc.setFillColor(200,16,46);doc.rect(M,Y+2,30,1,"F");
+  Y+=8;
+  doc.setFillColor(248,248,248);
+  var justLines=doc.splitTextToSize(r["Justification"]||"-",168);
+  var justH=justLines.length*5+8;
+  doc.roundedRect(M,Y,174,justH,3,3,"F");
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(60,60,60);
+  doc.text(justLines,M+3,Y+6);
+  Y+=justH+6;
+  
   // Proctoring
   doc.setFillColor(248,248,248);
   doc.roundedRect(M,Y,174,14,3,3,"F");
-  doc.setTextColor(80,80,80);doc.setFontSize(8);doc.setFont("helvetica","normal");
-  doc.text("Time Used: "+(r["Time Used"]||"-"),M+4,Y+5);
-  doc.text("Tab Flags: "+(r["Tab Flags"]||"0"),M+60,Y+5);
-  doc.text("Camera: "+(r["Camera"]||"-"),M+110,Y+5);
-  doc.text("Submission: "+(r["Submission"]||"-"),M+4,Y+11);
+  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(100,100,100);
+  doc.text("PROCTORING SUMMARY",M+3,Y+5);
+  doc.setFont("helvetica","normal");
+  doc.text("Time Used: "+(r["Time Used"]||"-")+"   |   Tab Flags: "+(r["Tab Flags"]||"0")+"   |   Camera: "+(r["Camera"]||"-")+"   |   Submission: "+(r["Submission"]||"-"),M+3,Y+11);
   Y+=18;
-
+  
   // Final recommendation
-  var recColor=rec.includes("HIGHLY")?[220,252,231]:rec.includes("PARTIAL")?[254,249,195]:[254,226,226];
-  var recTextColor=rec.includes("HIGHLY")?[22,101,52]:rec.includes("PARTIAL")?[133,77,14]:[153,27,27];
-  doc.setFillColor(recColor[0],recColor[1],recColor[2]);
+  var recRGB=rec.includes("HIGHLY")?[[220,252,231],[22,101,52]]:rec.includes("PARTIAL")?[[254,249,195],[133,77,14]]:[[254,226,226],[153,27,27]];
+  doc.setFillColor(recRGB[0][0],recRGB[0][1],recRGB[0][2]);
   doc.roundedRect(M,Y,174,20,4,4,"F");
-  doc.setTextColor(recTextColor[0],recTextColor[1],recTextColor[2]);
-  doc.setFontSize(14);doc.setFont("helvetica","bold");
+  doc.setFont("helvetica","bold");doc.setFontSize(14);
+  doc.setTextColor(recRGB[1][0],recRGB[1][1],recRGB[1][2]);
   doc.text(rec,W/2,Y+10,{align:"center"});
-  doc.setFontSize(9);doc.setFont("helvetica","normal");
-  var recSub=rec.includes("HIGHLY")?"Candidate is recommended to proceed to the next stage.":
-             rec.includes("PARTIAL")?"Candidate may be suitable with further evaluation.":
-             "Candidate does not meet the minimum threshold for this role.";
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);
+  var recSub=rec.includes("HIGHLY")?"Candidate is recommended to proceed to the next recruitment stage.":
+             rec.includes("PARTIAL")?"Candidate may be suitable with further structured evaluation.":
+             "Candidate does not meet the minimum threshold for this role at this time.";
   doc.text(recSub,W/2,Y+17,{align:"center"});
-  Y+=26;
-
+  
   // Footer
-  doc.setTextColor(180,180,180);doc.setFontSize(8);doc.setFont("helvetica","normal");
-  doc.text("Generated by VE-CCAF Assessment System | The Value Engineering | Confidential",W/2,290,{align:"center"});
-
-  doc.save("VE-CCAF-Report-"+r["Name"].replace(/ /g,"_")+".pdf");
+  doc.setDrawColor(238,238,238);
+  doc.line(M,286,W-M,286);
+  doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(180,180,180);
+  doc.text("Generated by VE-CCAF Assessment System | The Value Engineering | Strictly Confidential | Not for Distribution",W/2,291,{align:"center"});
+  
+  doc.save("VE-CCAF-Report-"+r["Name"].replace(/ /g,"_")+"-"+new Date().toISOString().split("T")[0]+".pdf");
 }
 window.addEventListener("load",function(){loadData();});
 </script>
