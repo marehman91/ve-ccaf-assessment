@@ -192,6 +192,25 @@ tr:hover td{background:#fafafa;}
         <div class="proctor-item"><strong id="rpt-camera">-</strong>Camera</div>
       </div>
 
+      <div style="margin-bottom:20px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">&#128219; CNIC Verification Snaps</h3>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600">START OF TEST</div>
+            <img id="cnic-start-img" style="width:160px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #C8102E;display:none">
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600">END OF TEST</div>
+            <img id="cnic-end-img" style="width:160px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #1a1a1a;display:none">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">&#128247; Proctoring Screenshots (every 30 sec)</h3>
+        <div id="snapshots-container" style="display:flex;flex-wrap:wrap;gap:6px;background:#f8f8f8;border-radius:10px;padding:12px;min-height:60px"></div>
+      </div>
+
       <div class="final-rec" id="final-rec-box">
         <h2 id="rpt-rec">-</h2>
         <p id="rpt-rec-sub">-</p>
@@ -362,6 +381,43 @@ function buildReport(r){
   document.getElementById("rpt-time").textContent=r["Time Used"]||"-";
   document.getElementById("rpt-flags").textContent=r["Tab Flags"]||"0";
   document.getElementById("rpt-camera").textContent=r["Camera"]||"-";
+
+  // CNIC snaps
+  var cnicStartEl=document.getElementById("cnic-start-img");
+  var cnicEndEl=document.getElementById("cnic-end-img");
+  if(r["cnic_start"]&&r["cnic_start"].length>10){
+    cnicStartEl.src=r["cnic_start"];cnicStartEl.style.display="block";
+  } else {cnicStartEl.style.display="none";}
+  if(r["cnic_end"]&&r["cnic_end"].length>10){
+    cnicEndEl.src=r["cnic_end"];cnicEndEl.style.display="block";
+  } else {cnicEndEl.style.display="none";}
+
+  // Screenshots
+  var snapContainer=document.getElementById("snapshots-container");
+  snapContainer.innerHTML="";
+  if(r["screenshots"]&&r["screenshots"].length>5){
+    var snaps=r["screenshots"].split("||");
+    snaps.forEach(function(snap){
+      var parts=snap.split(":");
+      var timeLabel=parts[0];
+      var dataUrl=parts.slice(1).join(":");
+      if(!dataUrl||dataUrl.length<10){return;}
+      var div=document.createElement("div");
+      div.style.cssText="display:inline-block;margin:4px;text-align:center;";
+      var img=document.createElement("img");
+      img.src=dataUrl;
+      img.style.cssText="width:100px;height:75px;object-fit:cover;border-radius:6px;border:1px solid #eee;display:block;cursor:pointer;";
+      img.title="Click to enlarge";
+      img.onclick=function(){window.open(this.src);};
+      var lbl=document.createElement("div");
+      lbl.style.cssText="font-size:10px;color:#888;margin-top:2px;";
+      lbl.textContent=timeLabel;
+      div.appendChild(img);div.appendChild(lbl);
+      snapContainer.appendChild(div);
+    });
+  } else {
+    snapContainer.innerHTML='<p style="font-size:13px;color:#888">No screenshots available (camera required during test)</p>';
+  }
 
   var rec=r["Recommendation"]||"";
   var recBox=document.getElementById("final-rec-box");
