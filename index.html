@@ -361,12 +361,16 @@ function captureScreenshot(){
     var video=document.getElementById("cpVid");
     if(!video||!video.videoWidth){return;}
     var canvas=document.createElement("canvas");
-    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-    canvas.getContext("2d").drawImage(video,0,0);
-    var dataUrl=canvas.toDataURL("image/jpeg",0.4);
+    // Small size for storage - 160x120
+    canvas.width=160;canvas.height=120;
+    canvas.getContext("2d").drawImage(video,0,0,160,120);
+    var dataUrl=canvas.toDataURL("image/jpeg",0.3);
     var elapsed=Math.floor((1200-timeLeft)/60)+"m "+((1200-timeLeft)%60)+"s";
+    // Keep max 5 screenshots
+    if(screenshots.length>=5){screenshots.shift();}
     screenshots.push({time:elapsed,dataUrl:dataUrl});
-  }catch(e){}
+    console.log("Screenshot captured at",elapsed,"total:",screenshots.length);
+  }catch(e){console.error("Screenshot error:",e);}
 }
 
 function startTest(){
@@ -589,10 +593,30 @@ function finish(forced,reason){
     submitted:forced?"Forced ("+reason+")":"Voluntary",
     cnic_start:cnicSnapStart,cnic_end:cnicSnapEnd,screenshots:snapshots
   };
+  // Send main data first
+  var mainPayload=Object.assign({},payload);
+  mainPayload.cnic_start="";
+  mainPayload.cnic_end="";
+  mainPayload.screenshots="";
   try{
-    fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-    .then(function(){console.log("Saved");}).catch(function(e){console.error(e);});
+    fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(mainPayload)})
+    .then(function(){console.log("Main data saved");}).catch(function(e){console.error(e);});
   }catch(e){console.error(e);}
+  // Send screenshots separately after 2 seconds
+  setTimeout(function(){
+    var snapPayload={
+      name:cName,
+      cnic_ref:cCNIC,
+      type:"SCREENSHOTS",
+      cnic_start:cnicSnapStart,
+      cnic_end:cnicSnapEnd,
+      screenshots:snapshots
+    };
+    try{
+      fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(snapPayload)})
+      .then(function(){console.log("Screenshots saved");}).catch(function(e){console.error(e);});
+    }catch(e){console.error(e);}
+  },2000);
 }
 
 document.getElementById("startBtn").addEventListener("click",doStart);
