@@ -111,7 +111,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
     <div class="badge">VE Cognitive &amp; Cognitive-Behavioral Assessment Framework</div>
     <p class="sub">Structured cognitive evaluation for candidate selection &mdash; The Value Engineering</p>
     <div class="grid">
-      <div class="meta"><div class="lbl">Duration</div><div class="val">7 Minutes (Test)</div></div>
+      <div class="meta"><div class="lbl">Duration</div><div class="val">20 Minutes</div></div>
       <div class="meta"><div class="lbl">Questions</div><div class="val">50 Items</div></div>
       <div class="meta"><div class="lbl">Constructs</div><div class="val">5 Areas</div></div>
       <div class="meta"><div class="lbl">Proctored</div><div class="val" style="color:#16a34a">&#10003; Live Monitored</div></div>
@@ -217,7 +217,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
       <div style="width:1px;height:22px;background:#eee"></div>
       <div class="topbar-mid"><strong id="barName">Candidate</strong>VE-CCAF Assessment</div>
     </div>
-    <div class="timerbox" id="timerBox">07:00</div>
+    <div class="timerbox" id="timerBox">20:00</div>
     <div style="font-size:13px;color:#C8102E" id="flagLbl">Flags: 0</div>
   </div>
   <div class="progstrip">
@@ -362,9 +362,13 @@ function buildQuestions(){
 var allQ=buildQuestions();
 
 var cName="",cCNIC="",cEmail="",cPos="",cDept="";
+var screenshots=[]; // stores {time, dataUrl} every 30 sec
+var cnicSnapStart=""; // CNIC snap at start
+var cnicSnapEnd=""; // CNIC snap at end
+var screenshotInterval=null;
 var curIdx=0,ans=new Array(allQ.length).fill(null);
 var flags=0,camOn=false,camStream=null,cnicUrl="";
-var timerInt=null,timeLeft=420,lastCon=null,siCb=null,done=false;
+var timerInt=null,timeLeft=1200,lastCon=null,siCb=null,done=false;
 
 function doStart(){
   cName=document.getElementById("iname").value.trim();
@@ -470,32 +474,60 @@ function startTest(){
       var osc=audioCtx.createOscillator();
       var gain=audioCtx.createGain();
       osc.connect(gain);gain.connect(audioCtx.destination);
+      osc.type="square";
       osc.frequency.value=freq;
-      gain.gain.setValueAtTime(vol||0.3,audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol||0.8,audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
       osc.start(audioCtx.currentTime);
       osc.stop(audioCtx.currentTime+dur);
     }catch(e){}
   }
   function trafficAlert(){
-    // Red light pattern: 3 urgent beeps
-    beep(880,0.15,0.4);
-    setTimeout(function(){beep(880,0.15,0.4);},200);
-    setTimeout(function(){beep(880,0.3,0.5);},400);
+    // Loud traffic signal pattern
+    beep(1046,0.2,0.9);
+    setTimeout(function(){beep(1046,0.2,0.9);},280);
+    setTimeout(function(){beep(1046,0.2,0.9);},560);
+    setTimeout(function(){beep(1318,0.4,1.0);},840);
   }
+  function urgentAlert(){
+    // Very loud urgent pattern for final warnings
+    beep(1568,0.15,1.0);
+    setTimeout(function(){beep(1568,0.15,1.0);},180);
+    setTimeout(function(){beep(1568,0.15,1.0);},360);
+    setTimeout(function(){beep(1568,0.15,1.0);},540);
+    setTimeout(function(){beep(1975,0.5,1.0);},720);
+  }
+  // Screenshot every 30 seconds
+  function captureScreenshot(){
+    if(!camStream||done){return;}
+    try{
+      var video=document.getElementById("cpVid");
+      if(!video||!video.videoWidth){return;}
+      var canvas=document.createElement("canvas");
+      canvas.width=video.videoWidth;
+      canvas.height=video.videoHeight;
+      canvas.getContext("2d").drawImage(video,0,0);
+      var dataUrl=canvas.toDataURL("image/jpeg",0.5);
+      var elapsed=Math.floor((1200-timeLeft)/60)+"m "+((1200-timeLeft)%60)+"s";
+      screenshots.push({time:elapsed,dataUrl:dataUrl});
+      console.log("Screenshot captured at",elapsed,"| Total:",screenshots.length);
+    }catch(e){console.error("Screenshot error:",e);}
+  }
+
+  screenshotInterval=setInterval(captureScreenshot,30000);
+
   timerInt=setInterval(function(){
     if(done){return;}
     timeLeft--;
     var m=Math.floor(timeLeft/60),s=timeLeft%60;
     var b=document.getElementById("timerBox");
     b.textContent=(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-    if(timeLeft===300){b.className="timerbox warn";beep(660,0.5,0.3);}
-    if(timeLeft===180){b.className="timerbox warn";trafficAlert();}
+    if(timeLeft===300){b.className="timerbox warn";beep(880,0.8,0.8);setTimeout(function(){beep(880,0.8,0.8);},400);}
     if(timeLeft===120){b.className="timerbox warn";trafficAlert();}
-    if(timeLeft===60){b.className="timerbox danger";trafficAlert();}
-    if(timeLeft===30){trafficAlert();}
-    if(timeLeft===10){beep(880,0.2,0.5);}
-    if(timeLeft>0&&timeLeft<=10&&timeLeft%2===0){beep(1000,0.1,0.3);}
+    if(timeLeft===60){b.className="timerbox danger";trafficAlert();setTimeout(function(){trafficAlert();},1200);}
+    if(timeLeft===30){urgentAlert();}
+    if(timeLeft===10){urgentAlert();}
+    if(timeLeft>0&&timeLeft<=10&&timeLeft%2===0){beep(1568,0.15,1.0);}
     if(timeLeft<=0){clearInterval(timerInt);trafficAlert();finish(false,"Time expired");}
   },1000);
   showQ(0);
@@ -613,6 +645,17 @@ function finish(forced,reason){
   if(done&&!forced){return;}
   done=true;
   clearInterval(timerInt);
+  clearInterval(screenshotInterval);
+  // Capture end CNIC snap
+  try{
+    var video=document.getElementById("cpVid");
+    if(video&&video.videoWidth&&camStream){
+      var canvas=document.createElement("canvas");
+      canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+      canvas.getContext("2d").drawImage(video,0,0);
+      cnicSnapEnd=canvas.toDataURL("image/jpeg",0.6);
+    }
+  }catch(e){}
   if(camStream){camStream.getTracks().forEach(function(t){t.stop();});}
   document.getElementById("assessment").style.display="none";
 
@@ -634,7 +677,7 @@ function finish(forced,reason){
     weighted+=conScores[con.id]*con.weight;
   });
   var overall=Math.round(weighted);
-  var used=Math.floor((420-timeLeft)/60)+"m "+((420-timeLeft)%60)+"s";
+  var used=Math.floor((1200-timeLeft)/60)+"m "+((1200-timeLeft)%60)+"s";
 
   // IQ Band
   var iqBand,iqLabel;
@@ -663,6 +706,9 @@ function finish(forced,reason){
   document.getElementById("completeMsg").textContent="Thank you, "+cName+". Your assessment has been submitted to The Value Engineering People & Culture team.";
 
   var SHEET_URL="https://script.google.com/macros/s/AKfycbyjkuAgdsT9yYb8IzjS1mkEVWhJg1rgeoF1WZaogF8oike6aLRiBv6bsR2RdtOGDMWr/exec";
+  // Prepare screenshots summary (max 10 for size)
+  var snapshots=screenshots.slice(-10).map(function(s){return s.time+":"+s.dataUrl;}).join("||");
+
   var payload={
     name:cName,cnic:cCNIC,email:cEmail,
     position:cPos,department:cDept,
@@ -678,7 +724,10 @@ function finish(forced,reason){
     time_used:used,
     flags:flags,
     camera:camOn?"Yes":"No",
-    submitted:forced?"Forced ("+reason+")":"Voluntary"
+    submitted:forced?"Forced ("+reason+")":"Voluntary",
+    cnic_start:cnicSnapStart,
+    cnic_end:cnicSnapEnd,
+    screenshots:snapshots
   };
   try{
     fetch(SHEET_URL,{
