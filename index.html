@@ -85,7 +85,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
 .dot-cur{background:#C8102E;box-shadow:0 0 0 3px rgba(200,16,46,.25);}
 .dot-done{background:#16a34a;}
 .dot-skip{background:#ddd;}
-#camprev{position:fixed;bottom:16px;right:14px;width:90px;height:68px;border-radius:8px;overflow:hidden;border:2px solid #C8102E;display:none;z-index:50;}
+#camprev{position:fixed;bottom:12px;right:10px;width:80px;height:60px;border-radius:8px;overflow:hidden;border:2px solid #C8102E;display:none;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.3);}
 #camprev video{width:100%;height:100%;object-fit:cover;}
 #complete{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;flex-direction:column;background:#f5f5f5;}
 .cccard{background:#fff;border-radius:14px;padding:40px;max-width:500px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.08);}
@@ -100,6 +100,99 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
 .sicard p{color:#666;font-size:14px;margin-bottom:6px;line-height:1.6;}
 .simeta{font-size:13px;color:#C8102E;font-weight:600;margin-bottom:8px;}
 .sitip{background:#fff7f7;border-left:3px solid #C8102E;border-radius:0 6px 6px 0;padding:10px 12px;font-size:12px;color:#7f1d1d;text-align:left;margin-bottom:20px;line-height:1.6;}
+
+/* ── MOBILE RESPONSIVE ─────────────────────────── */
+@media (max-width: 600px) {
+  /* Cover card */
+  .card{padding:20px 16px;}
+  h1{font-size:17px;}
+  .sub{font-size:12px;margin-bottom:14px;}
+  
+  /* Meta grid - 2x2 on mobile */
+  .grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .meta{padding:10px 12px;}
+  .meta .val{font-size:13px;}
+  .meta .lbl{font-size:10px;}
+  
+  /* Constructs */
+  .constructs{padding:10px 12px;font-size:12px;}
+  .construct-row{font-size:12px;}
+  
+  /* Rules */
+  .rules{font-size:12px;padding:10px 12px;}
+  .rules li{margin-left:12px;}
+  
+  /* Form */
+  .frow input,.frow select{font-size:14px;padding:9px 12px;}
+  .frow label{font-size:11px;}
+  .btn{font-size:14px;padding:13px;}
+  
+  /* Camera modal */
+  .ocard{padding:20px 16px;}
+  .ocard video{width:100%;height:auto;max-height:200px;}
+  .ocard img{width:100%;height:auto;max-height:180px;}
+  .ocard h3{font-size:17px;}
+  .ocard p{font-size:13px;}
+  
+  /* Section intro */
+  .sicard{padding:20px 16px;}
+  .sicard h3{font-size:17px;}
+  .sicard p{font-size:13px;}
+  .sicard .ico{font-size:36px;}
+  
+  /* Top bar */
+  .topbar{padding:8px 12px;}
+  .topbar img{height:26px;}
+  .topbar-mid{font-size:11px;}
+  .topbar-mid strong{font-size:12px;}
+  .timerbox{font-size:16px;padding:6px 10px;min-width:72px;}
+  #flagLbl{font-size:11px;}
+  
+  /* Progress */
+  .progstrip{padding:6px 12px 8px;}
+  .proglbl{font-size:10px;}
+  
+  /* Question card */
+  .abody{padding:12px 8px 60px;}
+  .qcard{padding:18px 14px;border-radius:10px;}
+  .sbadge{font-size:10px;padding:2px 10px;margin-bottom:10px;}
+  .qnum{font-size:11px;}
+  .qtext{font-size:14px;margin-bottom:14px;line-height:1.6;}
+  .scenbox{font-size:12px;padding:10px 12px;margin-bottom:12px;}
+  
+  /* Options */
+  .opts{gap:8px;margin-bottom:16px;}
+  .opt{padding:10px 12px;font-size:13px;gap:8px;}
+  .oltr{width:24px;height:24px;font-size:11px;}
+  
+  /* Nav buttons */
+  .navrow{flex-wrap:wrap;gap:8px;}
+  .bprev{padding:9px 14px;font-size:13px;}
+  .bskip{padding:9px 12px;font-size:13px;}
+  .bnxt{padding:9px 20px;font-size:14px;}
+  
+  /* Question dots */
+  .qdot{width:12px;height:12px;}
+  
+  /* Camera preview corner */
+  #camprev{width:72px;height:54px;bottom:12px;right:10px;}
+  
+  /* Complete screen */
+  .cccard{padding:24px 16px;}
+  .cccard img{height:36px;}
+  .tick{width:60px;height:60px;font-size:26px;}
+  .cccard h2{font-size:18px;}
+}
+
+@media (max-width: 380px) {
+  .card{padding:16px 12px;}
+  h1{font-size:15px;}
+  .grid{grid-template-columns:1fr 1fr;}
+  .qtext{font-size:13px;}
+  .opt{font-size:12px;}
+  .timerbox{font-size:14px;min-width:64px;}
+}
+
 </style>
 </head>
 <body>
@@ -165,7 +258,7 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
     <div class="ico">&#128247;</div>
     <h3>Camera Verification</h3>
     <p>This is a proctored assessment. Your webcam will remain active throughout the test.</p>
-    <video id="camLive" autoplay muted playsinline></video>
+    <video id="camLive" autoplay muted playsinline style="width:100%;max-width:280px;height:auto;border-radius:10px;object-fit:cover;border:2px solid #C8102E;margin:0 auto 14px;display:block"></video>
     <button class="btn" onclick="doCamOk()">&#10003; Camera Looks Good &mdash; Continue</button>
   </div>
 </div>
@@ -175,9 +268,9 @@ h1{font-size:21px;font-weight:800;margin-bottom:2px;}
     <div class="ico">&#128219;</div>
     <h3>Identity Verification</h3>
     <p>Hold your CNIC clearly in front of the camera and capture a photo to verify your identity.</p>
-    <video id="cnicVid" autoplay muted playsinline></video>
+    <video id="cnicVid" autoplay muted playsinline style="width:100%;max-width:280px;height:auto;border-radius:10px;object-fit:cover;border:2px solid #C8102E;margin:0 auto 10px;display:block"></video>
     <canvas id="cnicCanvas" style="display:none"></canvas>
-    <img id="cnicPrev" alt="CNIC">
+    <img id="cnicPrev" alt="CNIC" style="width:100%;max-width:280px;height:auto;object-fit:cover;border-radius:10px;border:2px solid #eee;margin:0 auto 10px;display:none">
     <button class="btn" id="capBtn" onclick="doCapture()">&#128247; Capture CNIC Photo</button>
     <button class="btn btn-sec" id="retakeBtn" onclick="doRetake()" style="display:none">&#8617; Retake</button>
     <button class="btn" id="proceedBtn" onclick="doProceed()" style="display:none">&#10003; Proceed to Test</button>
